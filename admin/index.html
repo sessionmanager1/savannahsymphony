@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#8A0A1F">
+<title>Admin | Savanna Symphony</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--red:#C8102E;--red-hi:#E0213B;--red-deep:#8A0A1F;--gold:#D8B35A;--gold-hi:#F2D98D;--ink:#140A0C;--bg:#F7F3EE;--card:#fff;--line:rgba(20,10,12,.12)}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;margin:0;line-height:1.1}
+.top{background:linear-gradient(135deg,var(--red),var(--red-deep));color:#fff;padding:1rem 1.2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;border-bottom:3px solid var(--gold)}
+.top h1{font-size:1.5rem}.top small{display:block;color:var(--gold-hi);font-family:inherit;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}
+.wrap{max-width:860px;margin:0 auto;padding:1.2rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:1.2rem;box-shadow:0 10px 30px -22px rgba(20,10,12,.6)}
+label{display:block;font-size:.82rem;font-weight:600;margin:.8rem 0 .3rem}
+input,textarea{width:100%;font:inherit;padding:.75rem .9rem;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+textarea{min-height:90px;resize:vertical}
+input:focus,textarea:focus{outline:3px solid var(--gold);outline-offset:1px}
+.btn{font:600 .9rem/1 inherit;font-family:inherit;padding:.8rem 1.2rem;border-radius:999px;border:1px solid transparent;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--red-hi),var(--red-deep))}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.line{background:#fff;color:var(--ink);border-color:var(--line)}
+.btn.danger{background:#fff;color:#b00020;border-color:#b00020}
+.btn.sm{padding:.6rem 1rem;font-size:.82rem}
+.link{background:none;border:0;color:var(--red);font:inherit;font-size:.85rem;text-decoration:underline;cursor:pointer;padding:0;margin-top:.8rem}
+#login{max-width:420px;margin:8vh auto 0}
+#login h2{font-size:2rem;margin-bottom:.2rem}
+.msg{margin-top:.8rem;font-size:.88rem;padding:.6rem .8rem;border-radius:10px;background:#fdecee;color:#8A0A1F}
+.msg.ok{background:#e8f5ec;color:#14572b}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem}
+.bar h2{font-size:1.8rem}
+.rev{margin-bottom:1rem}
+.rev .stars{color:var(--gold);letter-spacing:.1em;font-size:1.1rem}
+.rev .stars .off{color:rgba(20,10,12,.18)}
+.rev p.text{margin:.4rem 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.meta{font-size:.82rem;opacity:.7}
+.reply{margin-top:.8rem;padding:.8rem 1rem;border-left:4px solid var(--gold);background:#fbf6ea;border-radius:0 12px 12px 0}
+.reply b{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--red-deep)}
+.reply p{margin:.2rem 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem}
+.editor{margin-top:.8rem}
+.editor .actions{margin-top:.5rem}
+.empty{text-align:center;padding:2rem;opacity:.7}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="top"><div><h1>Savanna Symphony<small>Reviews admin</small></h1></div><button class="btn line sm" id="logout" hidden>Log out</button></div>
+<div class="wrap">
+  <div class="card" id="login">
+    <h2>Admin login</h2>
+    <p class="meta">Sign in to reply to or delete guest reviews.</p>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="pw">Password</label>
+      <input id="pw" type="password" autocomplete="current-password" required>
+      <div style="margin-top:1rem"><button class="btn" id="loginBtn" type="submit">Log in</button></div>
+    </form>
+    <button class="link" id="forgot" type="button">Forgot password?</button>
+    <div class="msg" id="loginMsg" hidden></div>
+  </div>
+
+  <div id="panel" hidden>
+    <div class="bar"><h2>Guest reviews <span class="meta" id="count"></span></h2><button class="btn line sm" id="refresh">Refresh</button></div>
+    <div class="msg" id="panelMsg" hidden></div>
+    <div id="list"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var PROJECT = 'savannasymphony';
+  var API_KEY = 'AIzaSyBJTaNgDNe3-l6lU635mOjabNfExmyn-7Y';
+  var ADMIN_EMAIL = 'franklinesaitoti9@gmail.com';
+
+  var FS = 'https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents';
+  var DOCS = 'https://firestore.googleapis.com/v1/';
+  var AUTH = 'https://identitytoolkit.googleapis.com/v1/accounts:';
+  var $ = function(s){ return document.querySelector(s); };
+  var session = null;
+
+  function store(){ try { sessionStorage.setItem('ss_admin', JSON.stringify(session)); } catch(e){} }
+  function load(){ try { return JSON.parse(sessionStorage.getItem('ss_admin')); } catch(e){ return null; } }
+  function clear(){ try { sessionStorage.removeItem('ss_admin'); } catch(e){} session = null; }
+  function show(el, text, ok){ el.textContent = text; el.className = 'msg' + (ok ? ' ok' : ''); el.hidden = !text; }
+
+  function friendly(code){
+    var c = String(code || '');
+    if (/INVALID_LOGIN|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(c)) return 'Wrong email or password.';
+    if (/TOO_MANY/.test(c)) return 'Too many attempts. Wait a few minutes and try again.';
+    if (/OPERATION_NOT_ALLOWED/.test(c)) return 'Email/password sign-in is not enabled in Firebase yet.';
+    return 'Something went wrong. Please try again.';
+  }
+
+  /* ---------- Auth ---------- */
+  function signIn(email, pw){
+    return fetch(AUTH + 'signInWithPassword?key=' + API_KEY, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: pw, returnSecureToken: true })
+    }).then(function(r){ return r.json().then(function(d){ if (!r.ok) throw new Error((d.error && d.error.message) || 'fail'); return d; }); });
+  }
+  function refreshToken(){
+    return fetch('https://securetoken.googleapis.com/v1/token?key=' + API_KEY, {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(session.refreshToken)
+    }).then(function(r){ return r.json().then(function(d){ if (!r.ok) throw new Error('expired'); session.idToken = d.id_token; session.refreshToken = d.refresh_token; session.exp = Date.now() + (parseInt(d.expires_in, 10) - 60) * 1000; store(); }); });
+  }
+  function token(){
+    if (!session) return Promise.reject(new Error('expired'));
+    if (Date.now() < session.exp) return Promise.resolve(session.idToken);
+    return refreshToken().then(function(){ return session.idToken; });
+  }
+  function authed(url, opts){
+    return token().then(function(t){
+      opts = opts || {}; opts.headers = Object.assign({ 'Authorization': 'Bearer ' + t }, opts.headers || {});
+      return fetch(url, opts);
+    }).then(function(r){
+      if (r.status === 401 || r.status === 403) {
+        return r.json().catch(function(){ return {}; }).then(function(d){
+          var e = new Error(r.status === 401 ? 'expired' : 'denied'); e.detail = d; throw e;
+        });
+      }
+      return r;
+    });
+  }
+
+  function showPanel(){
+    $('#login').hidden = true; $('#panel').hidden = false; $('#logout').hidden = false;
+    loadReviews();
+  }
+  function showLogin(){
+    $('#login').hidden = false; $('#panel').hidden = true; $('#logout').hidden = true;
+  }
+
+  $('#loginForm').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var email = $('#email').value.trim().toLowerCase(), pw = $('#pw').value, msg = $('#loginMsg'), btn = $('#loginBtn');
+    show(msg, '');
+    if (email !== ADMIN_EMAIL) { show(msg, 'This email does not have admin access.'); return; }
+    btn.disabled = true; btn.textContent = 'Signing in...';
+    signIn(email, pw).then(function(d){
+      session = { idToken: d.idToken, refreshToken: d.refreshToken, exp: Date.now() + (parseInt(d.expiresIn, 10) - 60) * 1000, email: d.email };
+      store(); $('#pw').value = ''; showPanel();
+    }).catch(function(e){ show(msg, friendly(e.message)); })
+      .then(function(){ btn.disabled = false; btn.textContent = 'Log in'; });
+  });
+
+  $('#forgot').addEventListener('click', function(){
+    var msg = $('#loginMsg');
+    fetch(AUTH + 'sendOobCode?key=' + API_KEY, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: ADMIN_EMAIL })
+    }).then(function(r){ if (!r.ok) throw 0; show(msg, 'A password reset link has been sent to the admin email.', true); })
+      .catch(function(){ show(msg, 'Could not send the reset email. Check that the admin user exists in Firebase.'); });
+  });
+
+  $('#logout').addEventListener('click', function(){ clear(); showLogin(); });
+  $('#refresh').addEventListener('click', loadReviews);
+
+  /* ---------- Reviews ---------- */
+  function sv(f, k){ return f && f[k] ? (f[k].stringValue || '') : ''; }
+  function loadReviews(){
+    var msg = $('#panelMsg'), list = $('#list');
+    show(msg, '');
+    list.textContent = '';
+    authed(FS + ':runQuery', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'reviews' }], orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }], limit: 200 } })
+    }).then(function(r){ if (!r.ok) throw new Error('load'); return r.json(); })
+      .then(function(rows){
+        var docs = rows.filter(function(x){ return x.document; }).map(function(x){ return x.document; });
+        $('#count').textContent = '(' + docs.length + ')';
+        if (!docs.length) { var e = document.createElement('div'); e.className = 'empty card'; e.textContent = 'No reviews yet.'; list.appendChild(e); return; }
+        docs.forEach(function(d){ list.appendChild(card(d)); });
+      })
+      .catch(handleErr);
+  }
+
+  function handleErr(e){
+    if (e && e.message === 'expired') { clear(); showLogin(); show($('#loginMsg'), 'Your session expired. Please log in again.'); return; }
+    if (e && e.message === 'denied') { show($('#panelMsg'), 'Permission denied. Publish the Firestore rules from firestore.rules and make sure you are signed in as the admin email.'); return; }
+    show($('#panelMsg'), 'Something went wrong. Please try again.');
+  }
+
+  function el(tag, cls, text){ var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+
+  function card(doc){
+    var f = doc.fields || {}, name = doc.name;
+    var rating = Math.max(1, Math.min(5, parseInt(f.rating && f.rating.integerValue, 10) || 5));
+    var c = el('article', 'card rev');
+    var st = el('div', 'stars');
+    for (var i = 1; i <= 5; i++) { var s = el('span', i <= rating ? '' : 'off', '\u2605'); st.appendChild(s); }
+    c.appendChild(st);
+    c.appendChild(el('p', 'text', sv(f, 'text')));
+    var when = f.createdAt && f.createdAt.timestampValue ? new Date(f.createdAt.timestampValue).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+    c.appendChild(el('div', 'meta', [sv(f, 'name') || 'Guest', sv(f, 'location'), sv(f, 'trip'), when].filter(Boolean).join(' \u00b7 ')));
+
+    var replyBox = el('div');
+    c.appendChild(replyBox);
+    var editor = el('div', 'editor'); editor.hidden = true;
+    var ta = el('textarea'); ta.maxLength = 1000; ta.placeholder = 'Write your reply to this guest...'; ta.setAttribute('aria-label', 'Reply');
+    var eAct = el('div', 'actions');
+    var save = el('button', 'btn sm', 'Post reply'); save.type = 'button';
+    var cancel = el('button', 'btn line sm', 'Cancel'); cancel.type = 'button';
+    eAct.appendChild(save); eAct.appendChild(cancel); editor.appendChild(ta); editor.appendChild(eAct);
+    c.appendChild(editor);
+
+    var acts = el('div', 'actions');
+    var replyBtn = el('button', 'btn sm'); replyBtn.type = 'button';
+    var delReply = el('button', 'btn line sm', 'Remove reply'); delReply.type = 'button';
+    var del = el('button', 'btn danger sm', 'Delete review'); del.type = 'button';
+    acts.appendChild(replyBtn); acts.appendChild(delReply); acts.appendChild(del);
+    c.appendChild(acts);
+
+    var current = sv(f, 'reply');
+    function paint(){
+      replyBox.textContent = '';
+      if (current) { var r = el('div', 'reply'); r.appendChild(el('b', '', 'Your reply')); r.appendChild(el('p', '', current)); replyBox.appendChild(r); }
+      replyBtn.textContent = current ? 'Edit reply' : 'Reply';
+      delReply.hidden = !current;
+    }
+    paint();
+
+    replyBtn.addEventListener('click', function(){ ta.value = current; editor.hidden = false; replyBtn.hidden = true; ta.focus(); });
+    cancel.addEventListener('click', function(){ editor.hidden = true; replyBtn.hidden = false; });
+
+    function patch(text, btn, label){
+      var url = DOCS + name + '?updateMask.fieldPaths=reply&updateMask.fieldPaths=replyAt';
+      var body = text ? { fields: { reply: { stringValue: text }, replyAt: { timestampValue: new Date().toISOString() } } } : { fields: {} };
+      btn.disabled = true; btn.textContent = 'Saving...';
+      return authed(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function(r){ if (!r.ok) throw new Error('save'); current = text; paint(); editor.hidden = true; replyBtn.hidden = false; show($('#panelMsg'), text ? 'Reply saved. It now shows on the website.' : 'Reply removed.', true); })
+        .catch(handleErr)
+        .then(function(){ btn.disabled = false; btn.textContent = label; });
+    }
+    save.addEventListener('click', function(){
+      var t = ta.value.trim();
+      if (!t) { show($('#panelMsg'), 'Write a reply first.'); return; }
+      patch(t, save, 'Post reply');
+    });
+    delReply.addEventListener('click', function(){
+      if (confirm('Remove your reply from this review?')) patch('', delReply, 'Remove reply');
+    });
+    del.addEventListener('click', function(){
+      if (!confirm('Delete this review permanently? This cannot be undone.')) return;
+      del.disabled = true; del.textContent = 'Deleting...';
+      authed(DOCS + name, { method: 'DELETE' })
+        .then(function(r){ if (!r.ok) throw new Error('del'); c.remove(); var n = document.querySelectorAll('.rev').length; $('#count').textContent = '(' + n + ')'; show($('#panelMsg'), 'Review deleted.', true); })
+        .catch(function(e){ del.disabled = false; del.textContent = 'Delete review'; handleErr(e); });
+    });
+    return c;
+  }
+
+  /* ---------- Start ---------- */
+  session = load();
+  if (session && session.email && session.email.toLowerCase() === ADMIN_EMAIL) showPanel(); else showLogin();
+})();
+</script>
+</body>
+</html>
