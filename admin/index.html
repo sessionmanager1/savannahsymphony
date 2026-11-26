@@ -79,6 +79,7 @@ input:focus,textarea:focus{outline:3px solid var(--gold);outline-offset:1px}
   var PROJECT = 'savannasymphony';
   var API_KEY = 'AIzaSyBJTaNgDNe3-l6lU635mOjabNfExmyn-7Y';
   var ADMIN_EMAIL = 'franklinesaitoti9@gmail.com';
+  var ADMIN_EMAILS = ['franklinesaitoti9@gmail.com', 'rafaelloso@icloud.com'];
 
   var FS = 'https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents';
   var DOCS = 'https://firestore.googleapis.com/v1/';
@@ -143,7 +144,7 @@ input:focus,textarea:focus{outline:3px solid var(--gold);outline-offset:1px}
     ev.preventDefault();
     var email = $('#email').value.trim().toLowerCase(), pw = $('#pw').value, msg = $('#loginMsg'), btn = $('#loginBtn');
     show(msg, '');
-    if (email !== ADMIN_EMAIL) { show(msg, 'This email does not have admin access.'); return; }
+    if (ADMIN_EMAILS.indexOf(email) === -1) { show(msg, 'This email does not have admin access.'); return; }
     btn.disabled = true; btn.textContent = 'Signing in...';
     signIn(email, pw).then(function(d){
       session = { idToken: d.idToken, refreshToken: d.refreshToken, exp: Date.now() + (parseInt(d.expiresIn, 10) - 60) * 1000, email: d.email };
@@ -260,7 +261,7 @@ input:focus,textarea:focus{outline:3px solid var(--gold);outline-offset:1px}
 
   /* ---------- Start ---------- */
   session = load();
-  if (session && session.email && session.email.toLowerCase() === ADMIN_EMAIL) showPanel(); else showLogin();
+  if (session && session.email && ADMIN_EMAILS.indexOf(session.email.toLowerCase()) !== -1) showPanel(); else showLogin();
 })();
 </script>
 </body>
